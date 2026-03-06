@@ -266,7 +266,12 @@ function draw() {
     });
 
     if (isPlaying) {
-        const barX = OFFSET_X + (Tone.Transport.progress * (COLS * CELL_W));
+        let progress = Tone.Transport.progress;
+        if (!Tone.Transport.loop) {
+            const duration = Tone.Time(Tone.Transport.loopEnd).toSeconds();
+            progress = duration > 0 ? Tone.Transport.seconds / duration : 0;
+        }
+        const barX = OFFSET_X + (progress * (COLS * CELL_W));
         ctx.strokeStyle = "#ff3366";
         ctx.lineWidth = 5;
         ctx.beginPath();
