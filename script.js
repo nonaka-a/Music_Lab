@@ -85,7 +85,7 @@ const drumSampler = new Tone.Sampler({
         "D1": "https://tonejs.github.io/audio/drum-samples/CR78/snare.mp3",
         "E1": "https://tonejs.github.io/audio/drum-samples/CR78/hihat.mp3",
         "F1": "sound/Clap.mp3",
-        "G1": "https://tonejs.github.io/audio/drum-samples/CR78/tom2.mp3"
+        "G1": "sound/cowbell.mp3"
     },
     onload: () => console.log("Drums loaded")
 }).toDestination();
@@ -303,9 +303,15 @@ function getEventPos(e) {
 }
 
 modeDrawBtn.addEventListener('click', () => {
-    currentMode = 'draw';
-    modeDrawBtn.classList.add('active');
-    modeEraseBtn.classList.remove('active');
+    if (modeDrawBtn.classList.contains('active')) {
+        // すでにアクティブならトグルでオフにする
+        currentMode = 'move';
+        modeDrawBtn.classList.remove('active');
+    } else {
+        currentMode = 'draw';
+        modeDrawBtn.classList.add('active');
+        modeEraseBtn.classList.remove('active');
+    }
     draw();
 });
 
@@ -331,7 +337,8 @@ function handleStart(e) {
         } else {
             if (foundIndex !== -1) {
                 draggedNote = notesData[foundIndex];
-            } else {
+            } else if (currentMode === 'draw') {
+                // 'draw'モードの時だけ新しく置ける
                 const newNote = { timeIndex: grid.x, noteIndex: grid.y };
                 notesData.push(newNote);
                 draggedNote = newNote;
@@ -801,7 +808,7 @@ async function exportSong(key, btn) {
             "D1": "https://tonejs.github.io/audio/drum-samples/CR78/snare.mp3",
             "E1": "https://tonejs.github.io/audio/drum-samples/CR78/hihat.mp3",
             "F1": "sound/Clap.mp3",
-            "G1": "https://tonejs.github.io/audio/drum-samples/CR78/tom2.mp3"
+            "G1": "sound/cowbell.mp3"
         };
         const drumBuffers = new Tone.ToneAudioBuffers(drumSamples);
         await drumBuffers.loaded;
