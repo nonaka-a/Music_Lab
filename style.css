@@ -100,8 +100,8 @@ body {
 }
 
 .large-modal {
-    width: 80%;
-    max-width: 600px;
+    width: 90%;
+    max-width: 800px;
 }
 
 .settings-section {
@@ -196,6 +196,11 @@ button.cancel-btn {
 button.danger-btn {
     background: #ff4444;
     box-shadow: 0 4px 0 #cc0000;
+}
+
+button.export-btn {
+    background: #9b59b6;
+    box-shadow: 0 4px 0 #8e44ad;
 }
 
 .mode-switch {
@@ -404,4 +409,43 @@ canvas {
     border-radius: 10px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     touch-action: none;
+}
+
+/* 書き出し中のオーバーレイ */
+#export-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 10000;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.export-spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid rgba(255, 255, 255, 0.3);
+    border-top: 5px solid white;
+    border-radius: 50%;
+    margin-bottom: 20px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }

@@ -78,6 +78,11 @@ let samplerPiano = new Tone.Sampler({
 
 let currentInstrument = samplerPiano;
 
+// リアルタイム録音用設定
+const recorderDestination = Tone.context.createMediaStreamDestination();
+Tone.Destination.connect(recorderDestination);
+let isExporting = false;
+
 // ドラム音源
 const drumSampler = new Tone.Sampler({
     urls: {
@@ -500,6 +505,10 @@ settingsBtn.addEventListener('click', () => {
 });
 
 closeSettingsBtn.addEventListener('click', () => {
+    if (isExporting) {
+        alert("かきだし中（ろくおん中）は とじられないよ！");
+        return;
+    }
     // プレビュー用に変更された設定とスケジュールを元に戻す
     Tone.Transport.stop();
     Tone.Transport.cancel();
@@ -641,6 +650,7 @@ function renderSongList() {
         const renameBtn = document.createElement('button');
         renameBtn.innerText = "なまえへんこう";
         renameBtn.onclick = () => {
+            if (isExporting) return;
             const newName = prompt("あたらしい なまえを いれてね", key);
             if (newName && newName !== key) {
                 if (songs[newName]) {
@@ -654,11 +664,18 @@ function renderSongList() {
             }
         };
 
+        // かきだし（録音）ボタン
+        const exportBtn = document.createElement('button');
+        exportBtn.innerText = "かきだし";
+        exportBtn.className = "export-btn";
+        exportBtn.onclick = () => exportSongRealtime(key, exportBtn);
+
         // 消すボタン
         const deleteBtn = document.createElement('button');
         deleteBtn.innerText = "けす";
         deleteBtn.className = "danger-btn";
         deleteBtn.onclick = () => {
+            if (isExporting) return;
             Tone.Transport.stop();
             if (confirm("ほんとうに「" + key + "」を けす？")) {
                 delete songs[key];
@@ -670,6 +687,7 @@ function renderSongList() {
         actionDiv.appendChild(previewBtn);
         actionDiv.appendChild(loadActionBtn);
         actionDiv.appendChild(renameBtn);
+        actionDiv.appendChild(exportBtn);
         actionDiv.appendChild(deleteBtn);
 
         li.appendChild(nameSpan);
@@ -729,8 +747,96 @@ window.addEventListener('resize', () => {
     updateCanvasPosition();
 });
 
-// --- 書き出し機能 (WAV) ---
-function bufferToWav(buffer) {
+// --- 書き出し機能 (リアルタイム録音 & WAV変換) ---
+const exportOverlay = document.getElementById('export-overlay');
+const exportMsg = document.getElementById('export-msg');
+
+async function exportSongRealtime(key, btn) {
+    if (isExporting) return;
+
+    if (!confirm(`「${key}」を かきだす（ろくおんする）？\n※さいごまで 音を きく必要があるよ！`)) {
+        return;
+    }
+
+    const songs = getSavedSongs();
+    const data = songs[key];
+    if (!data) return;
+
+    if (Tone.context.state !== 'running') await Tone.start();
+
+    isExporting = true;
+    const originalText = btn.innerText;
+    btn.innerText = "かきだし中...";
+    btn.disabled = true;
+
+    // オーバーレイを表示して操作をロック
+    exportMsg.innerText = `「${key}」を かきだしちゅう。\nちょっとまってね...`;
+    exportOverlay.style.display = 'flex';
+
+    Tone.Transport.stop();
+    Tone.Transport.cancel();
+
+    const notesToPlay = data.notes || data;
+    const percToUse = data.percussion || ["kick", "snare", "hihat"];
+
+    notesToPlay.forEach(n => {
+        Tone.Transport.schedule((time) => {
+            if (n.noteIndex < MELODY_ROWS) {
+                const dur = (currentInstrument === synthPoly) ? "8n" : "4n";
+                currentInstrument.triggerAttackRelease(NOTES[n.noteIndex], dur, time);
+            } else {
+                const typeId = percToUse[n.noteIndex - MELODY_ROWS];
+                const typeObj = PERCUSSION_TYPES.find(t => t.id === typeId);
+                drumSampler.triggerAttackRelease(typeObj.note, "4n", time);
+            }
+        }, `0:0:${n.timeIndex * 2}`);
+    });
+
+    Tone.Transport.loop = false;
+    const songDuration = `0:0:${COLS * 2}`;
+
+    const chunks = [];
+    const mediaRecorder = new MediaRecorder(recorderDestination.stream);
+
+    mediaRecorder.ondataavailable = (evt) => { if (evt.data.size > 0) chunks.push(evt.data); };
+
+    mediaRecorder.onstop = async () => {
+        const webmBlob = new Blob(chunks, { type: 'audio/webm' });
+
+        // --- WAV変換ロジック ---
+        const arrayBuffer = await webmBlob.arrayBuffer();
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+        const wavBlob = audioBufferToWav(audioBuffer);
+        const url = URL.createObjectURL(wavBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${key}.wav`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        // 状態を戻す
+        isExporting = false;
+        btn.innerText = originalText;
+        btn.disabled = false;
+        exportOverlay.style.display = 'none';
+
+        alert("「" + key + "」のかきだしが おわったよ！");
+        updateSchedule();
+    };
+
+    Tone.Transport.schedule((time) => {
+        mediaRecorder.stop();
+        Tone.Transport.stop();
+    }, songDuration);
+
+    mediaRecorder.start();
+    Tone.Transport.start();
+}
+
+// AudioBufferをWAV形式のBlobに変換するヘルパー関数
+function audioBufferToWav(buffer) {
     let numOfChan = buffer.numberOfChannels,
         length = buffer.length * numOfChan * 2 + 44,
         bufferArr = new ArrayBuffer(length),
@@ -739,35 +845,24 @@ function bufferToWav(buffer) {
         offset = 0,
         pos = 0;
 
-    function setUint16(data) {
-        view.setUint16(pos, data, true);
-        pos += 2;
-    }
+    function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
+    function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
 
-    function setUint32(data) {
-        view.setUint32(pos, data, true);
-        pos += 4;
-    }
-
-    // write WAVE header
     setUint32(0x46464952);                         // "RIFF"
     setUint32(length - 8);                         // file length - 8
     setUint32(0x45564157);                         // "WAVE"
-
     setUint32(0x20746d66);                         // "fmt " chunk
     setUint32(16);                                 // length = 16
-    setUint16(1);                                  // PCM (uncompressed)
+    setUint16(1);                                  // PCM
     setUint16(numOfChan);
     setUint32(buffer.sampleRate);
-    setUint32(buffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
-    setUint16(numOfChan * 2);                      // block-align
+    setUint32(buffer.sampleRate * 2 * numOfChan);
+    setUint16(numOfChan * 2);
     setUint16(16);                                 // 16-bit
+    setUint32(0x61746164);                         // "data"
+    setUint32(length - pos - 4);
 
-    setUint32(0x61746164);                         // "data" - chunk
-    setUint32(length - pos - 4);                   // chunk length
-
-    for (i = 0; i < buffer.numberOfChannels; i++)
-        channels.push(buffer.getChannelData(i));
+    for (i = 0; i < buffer.numberOfChannels; i++) channels.push(buffer.getChannelData(i));
 
     while (pos < length) {
         for (i = 0; i < numOfChan; i++) {
@@ -778,112 +873,5 @@ function bufferToWav(buffer) {
         }
         offset++;
     }
-
     return new Blob([bufferArr], { type: "audio/wav" });
-}
-
-async function exportSong(key, btn) {
-    const songs = getSavedSongs();
-    const data = songs[key];
-    if (!data) return;
-
-    const originalText = btn.innerText;
-    btn.innerText = "じゅんび中...";
-    btn.disabled = true;
-
-    try {
-        if (Tone.context.state !== 'running') await Tone.start();
-
-        const notesToPlay = data.notes || data;
-        const percToUse = data.percussion || ["kick", "snare", "hihat"];
-        const bpm = Tone.Transport.bpm.value;
-        const duration = (COLS * 2) * (60 / bpm / 4);
-        const currentType = synthTypeSelect.value;
-
-        // 1. 音源バッファを事前にロードする
-        btn.innerText = "よみこみ中...";
-
-        const drumSamples = {
-            "C1": "https://tonejs.github.io/audio/drum-samples/CR78/kick.mp3",
-            "D1": "https://tonejs.github.io/audio/drum-samples/CR78/snare.mp3",
-            "E1": "https://tonejs.github.io/audio/drum-samples/CR78/hihat.mp3",
-            "F1": "sound/Clap.mp3",
-            "G1": "sound/cowbell.mp3"
-        };
-        const drumBuffers = new Tone.ToneAudioBuffers(drumSamples);
-        await drumBuffers.loaded;
-
-        const pianoSamples = {
-            "A0": "A0.mp3", "C1": "C1.mp3", "D#1": "Ds1.mp3", "F#1": "Fs1.mp3", "A1": "A1.mp3",
-            "C2": "C2.mp3", "D#2": "Ds2.mp3", "F#2": "Fs2.mp3", "A2": "A2.mp3", "C3": "C3.mp3",
-            "D#3": "Ds3.mp3", "F#3": "Fs3.mp3", "A3": "A3.mp3", "C4": "C4.mp3", "D#4": "Ds4.mp3",
-            "F#4": "Fs4.mp3", "A4": "A4.mp3", "C5": "C5.mp3", "D#5": "Ds5.mp3", "F#5": "Fs5.mp3",
-            "A5": "A5.mp3", "C6": "C6.mp3", "D#6": "Ds6.mp3", "F#6": "Fs6.mp3", "A6": "A6.mp3",
-            "C7": "C7.mp3", "D#7": "Ds7.mp3", "F#7": "Fs7.mp3", "A7": "A7.mp3", "C8": "C8.mp3"
-        };
-        let pianoBuffers = null;
-        if (currentType === "piano") {
-            pianoBuffers = new Tone.ToneAudioBuffers(pianoSamples, {
-                baseUrl: "https://tonejs.github.io/audio/salamander/"
-            });
-            await pianoBuffers.loaded;
-        }
-
-        // 2. オフラインコンテキストでレンダリング
-        btn.innerText = "かきだし中...";
-        const buffer = await Tone.Offline(async (context) => {
-            let inst;
-            if (currentType === "piano") {
-                const pianoMap = {};
-                Object.keys(pianoSamples).forEach(note => {
-                    const tb = pianoBuffers.get(note);
-                    if (tb) pianoMap[note] = tb.get(); // ネイティブの AudioBuffer を抽出
-                });
-                inst = new Tone.Sampler({ urls: pianoMap, context }).toDestination();
-            } else {
-                inst = new Tone.PolySynth(Tone.Synth, {
-                    oscillator: { type: currentType },
-                    context: context
-                }).toDestination();
-            }
-
-            const drumMap = {};
-            Object.keys(drumSamples).forEach(note => {
-                const tb = drumBuffers.get(note);
-                if (tb) drumMap[note] = tb.get(); // ネイティブの AudioBuffer を抽出
-            });
-            const drums = new Tone.Sampler({ urls: drumMap, context }).toDestination();
-
-            // すでにロード済みのネイティブAudioBufferを渡しているので即座に発音可能
-            notesToPlay.forEach(n => {
-                const time = n.timeIndex * 2 * (60 / bpm / 4);
-                if (n.noteIndex < MELODY_ROWS) {
-                    const dur = (currentType === "piano") ? "4n" : "8n";
-                    inst.triggerAttackRelease(NOTES[n.noteIndex], dur, time);
-                } else {
-                    const typeId = percToUse[n.noteIndex - MELODY_ROWS];
-                    const typeObj = PERCUSSION_TYPES.find(t => t.id === typeId);
-                    drums.triggerAttackRelease(typeObj.note, "4n", time);
-                }
-            });
-        }, duration);
-
-        const wavBlob = bufferToWav(buffer);
-        const url = URL.createObjectURL(wavBlob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${key}.wav`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        setTimeout(() => alert("「" + key + "」のかきだしが おわったよ！"), 500);
-    } catch (e) {
-        console.error(e);
-        alert("かきだしに しっぱいしました。");
-    } finally {
-        btn.innerText = originalText;
-        btn.disabled = false;
-    }
 }
