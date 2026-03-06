@@ -10,6 +10,7 @@ body {
     font-family: "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
