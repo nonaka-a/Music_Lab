@@ -1,0 +1,402 @@
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: fixed;
+    background-color: #f0f2f5;
+    font-family: "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+/* ロード画面 */
+#loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    font-weight: bold;
+    color: #4A90E2;
+    z-index: 9999;
+}
+
+/* 歯車ボタン */
+#settingsBtn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 24px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    cursor: pointer;
+    z-index: 200;
+    padding: 5px;
+    transition: transform 0.2s;
+}
+
+#settingsBtn:active {
+    transform: rotate(90deg);
+}
+
+/* コントロール（歯車を避けるため右に余白） */
+#controls {
+    flex-shrink: 0;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+    background: white;
+    padding: 10px;
+    padding-right: 60px;
+    /* 歯車のスペース */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+}
+
+/* モーダル */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 20px 30px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    min-width: 300px;
+    max-height: 90%;
+    overflow-y: auto;
+}
+
+.large-modal {
+    width: 80%;
+    max-width: 600px;
+}
+
+.settings-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.settings-section h3 {
+    margin-top: 0;
+    border-bottom: 2px solid #ccc;
+    padding-bottom: 5px;
+}
+
+/* 曲管理リスト */
+#manage-song-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    text-align: left;
+}
+
+#manage-song-list li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    border: 2px solid #ddd;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.song-name {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    flex-grow: 1;
+    margin-right: 10px;
+}
+
+.song-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.song-actions button {
+    padding: 6px 12px;
+    font-size: 14px;
+}
+
+/* ボタン類 */
+button {
+    padding: 10px 18px;
+    font-weight: bold;
+    border: none;
+    border-radius: 50px;
+    background: #4A90E2;
+    color: white;
+    box-shadow: 0 4px 0 #357ABD;
+    cursor: pointer;
+}
+
+button:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #357ABD;
+}
+
+button#clearBtn {
+    background: #aaaaaa;
+    box-shadow: 0 4px 0 #777777;
+}
+
+button#saveBtn {
+    background: #ff66aa;
+    box-shadow: 0 4px 0 #cc3377;
+}
+
+button.action-btn {
+    background: #44cc44;
+    box-shadow: 0 4px 0 #228822;
+}
+
+button.cancel-btn {
+    background: #aaa;
+    box-shadow: 0 4px 0 #777;
+    margin-top: 10px;
+}
+
+button.danger-btn {
+    background: #ff4444;
+    box-shadow: 0 4px 0 #cc0000;
+}
+
+.mode-switch {
+    display: flex;
+    background: #eee;
+    border-radius: 50px;
+    padding: 4px;
+    gap: 4px;
+}
+
+.mode-btn {
+    background: transparent;
+    color: #555;
+    box-shadow: none;
+    padding: 8px 16px;
+    border-radius: 50px;
+}
+
+.mode-btn.active {
+    background: white;
+    color: #4A90E2;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+#modeEraseBtn.active {
+    color: #ff4444;
+}
+
+.toggle-btn {
+    background: #ccc;
+    box-shadow: 0 4px 0 #999;
+}
+
+.toggle-btn.active {
+    background: #4A90E2;
+    box-shadow: 0 4px 0 #357ABD;
+}
+
+/* ループアイコンの描画 */
+#loopBtn {
+    padding: 8px 14px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.loop-icon {
+    width: 14px;
+    height: 14px;
+    border: 2.5px solid white;
+    border-radius: 50%;
+    border-top-color: transparent;
+    position: relative;
+    transform: rotate(45deg);
+}
+
+.loop-icon::after {
+    content: "";
+    position: absolute;
+    top: -7px;
+    right: 1px;
+    border-bottom: 6px solid white;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    transform: rotate(-45deg);
+}
+
+select,
+#songNameInput {
+    padding: 8px;
+    border-radius: 10px;
+    border: 2px solid #ccc;
+    font-size: 16px;
+}
+
+#synthType {
+    width: 130px;
+    /* 横幅を狭く設定 */
+}
+
+#songNameInput {
+    width: 160px;
+    font-weight: bold;
+}
+
+.label-text {
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #555;
+}
+
+/* 五線譜周り（変更なし） */
+#main-container {
+    flex-grow: 1;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+}
+
+#v-scroll-panel {
+    width: 40px;
+    background-color: #e9ecef;
+    border-right: 1px solid #ccc;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    z-index: 60;
+}
+
+#v-scroll-track {
+    width: 20px;
+    height: 90%;
+    background: #dee2e6;
+    border-radius: 10px;
+    position: relative;
+}
+
+#v-scroll-handle {
+    position: absolute;
+    width: 100%;
+    background: #4A90E2;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    touch-action: none;
+}
+
+#canvas-viewport {
+    flex-grow: 1;
+    overflow: hidden;
+    background-color: #fff;
+    position: relative;
+}
+
+canvas {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    cursor: pointer;
+    touch-action: none;
+    z-index: 10;
+}
+
+#y-axis-labels {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 110px;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.85);
+    border-right: 2px solid #ddd;
+    z-index: 20;
+    pointer-events: none;
+}
+
+.y-label {
+    position: absolute;
+    right: 10px;
+    font-weight: bold;
+    font-size: 18px;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+.percussion-label {
+    pointer-events: auto !important;
+    width: 100px;
+    right: 5px !important;
+}
+
+.percussion-select {
+    width: 95%;
+    font-size: 12px;
+    padding: 2px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    pointer-events: auto;
+    background: white;
+}
+
+#h-scroll-panel {
+    flex-shrink: 0;
+    height: 40px;
+    background-color: #e9ecef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-top: 1px solid #ccc;
+    z-index: 50;
+}
+
+#h-scroll-track {
+    width: 90%;
+    height: 20px;
+    background: #dee2e6;
+    border-radius: 10px;
+    position: relative;
+}
+
+#h-scroll-handle {
+    position: absolute;
+    height: 100%;
+    background: #4A90E2;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    touch-action: none;
+}

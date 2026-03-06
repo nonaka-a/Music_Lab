@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>おんがくツクール</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+</head>
+
+<body>
+
+    <div id="loading-overlay">おとを じゅんび中...</div>
+
+    <!-- 右上の歯車ボタン -->
+    <button id="settingsBtn">⚙️</button>
+
+    <!-- 設定＆曲管理用モーダル画面 -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content large-modal">
+            <h2>せってい / きょくの かんり</h2>
+
+            <div class="settings-section">
+                <button id="fullscreenBtn" class="action-btn">フルスクリーンにする / やめる</button>
+            </div>
+
+            <div class="settings-section">
+                <h3>きろくした きょく</h3>
+                <ul id="manage-song-list"></ul>
+            </div>
+
+            <button id="closeSettingsBtn" class="cancel-btn">とじる</button>
+        </div>
+    </div>
+
+    <div id="controls">
+        <input type="text" id="songNameInput" placeholder="きょくの なまえ" value="あたらしいきょく">
+        <button id="playBtn">▶︎ / ■</button>
+        <button id="loopBtn" class="toggle-btn active" title="くりかえす">
+            <div class="loop-icon">
+                <div class="arrow"></div>
+            </div>
+        </button>
+
+        <select id="synthType">
+            <option value="piano">ピアノ</option>
+            <option value="sine">やわらかい音</option>
+            <option value="square">ピコピコ音</option>
+            <option value="sawtooth">はなやかな音</option>
+            <option value="triangle">おだやかな音</option>
+        </select>
+
+        <div class="mode-switch">
+            <button id="modeDrawBtn" class="mode-btn active">⭕ おく</button>
+            <button id="modeEraseBtn" class="mode-btn">❌ けす</button>
+        </div>
+
+        <button id="saveBtn">きろく</button>
+        <button id="randomDrumsBtn" style="background: #ffaa44; box-shadow: 0 4px 0 #cc7722;">ランダム🥁</button>
+        <button id="clearBtn">ぜんぶけす</button>
+    </div>
+
+    <div id="main-container">
+        <div id="v-scroll-panel">
+            <div id="v-scroll-track">
+                <div id="v-scroll-handle"></div>
+            </div>
+        </div>
+
+        <div id="canvas-viewport">
+            <div id="y-axis-labels"></div>
+            <canvas id="scoreCanvas"></canvas>
+        </div>
+    </div>
+
+    <div id="h-scroll-panel">
+        <div id="h-scroll-track">
+            <div id="h-scroll-handle"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
