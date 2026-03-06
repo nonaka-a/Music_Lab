@@ -81,13 +81,12 @@ let currentInstrument = samplerPiano;
 // ドラム音源
 const drumSampler = new Tone.Sampler({
     urls: {
-        "C1": "kick.mp3",
-        "D1": "snare.mp3",
-        "E1": "hihat.mp3",
-        "F1": "tom1.mp3",
-        "G1": "tom2.mp3"
+        "C1": "https://tonejs.github.io/audio/drum-samples/CR78/kick.mp3",
+        "D1": "https://tonejs.github.io/audio/drum-samples/CR78/snare.mp3",
+        "E1": "https://tonejs.github.io/audio/drum-samples/CR78/hihat.mp3",
+        "F1": "sound/Clap.mp3",
+        "G1": "https://tonejs.github.io/audio/drum-samples/CR78/tom2.mp3"
     },
-    baseUrl: "https://tonejs.github.io/audio/drum-samples/CR78/",
     onload: () => console.log("Drums loaded")
 }).toDestination();
 
@@ -798,11 +797,13 @@ async function exportSong(key, btn) {
         btn.innerText = "よみこみ中...";
 
         const drumSamples = {
-            "C1": "kick.mp3", "D1": "snare.mp3", "E1": "hihat.mp3", "F1": "tom1.mp3", "G1": "tom2.mp3"
+            "C1": "https://tonejs.github.io/audio/drum-samples/CR78/kick.mp3",
+            "D1": "https://tonejs.github.io/audio/drum-samples/CR78/snare.mp3",
+            "E1": "https://tonejs.github.io/audio/drum-samples/CR78/hihat.mp3",
+            "F1": "sound/Clap.mp3",
+            "G1": "https://tonejs.github.io/audio/drum-samples/CR78/tom2.mp3"
         };
-        const drumBuffers = new Tone.ToneAudioBuffers(drumSamples, {
-            baseUrl: "https://tonejs.github.io/audio/drum-samples/CR78/"
-        });
+        const drumBuffers = new Tone.ToneAudioBuffers(drumSamples);
         await drumBuffers.loaded;
 
         const pianoSamples = {
